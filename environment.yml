@@ -16,4 +16,3 @@ dependencies:
   - bioconda::samtools=1.9
 
   - pandas=1.2.1
-  - gzip=1.7
