@@ -14,3 +14,5 @@ dependencies:
   ##bioconda packages
   - bioconda::mosdepth=0.2.6
   - bioconda::samtools=1.9
+
+  - pandas=1.2.1
