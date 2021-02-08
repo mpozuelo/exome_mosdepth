@@ -13,7 +13,4 @@ dependencies:
 
   ##bioconda packages
   - bioconda::mosdepth=0.2.6
-
-
-  #Other
-  #- gzip::1.7
+  - bioconda::samtools=1.9
