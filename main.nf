@@ -71,7 +71,7 @@ project = params.project
 
 
 // Stage multiqc config files
-ch_multiqc_config        = file("$projectDir/assets/multiqc_config.yaml", checkIfExists: true)
+//ch_multiqc_config        = file("$projectDir/assets/multiqc_config.yaml", checkIfExists: true)
 
 
 
@@ -153,13 +153,70 @@ ${summary.collect { k,v -> "            <dt>$k</dt><dd><samp>${v ?: '<span style
  */
 
 
+ process modify_samplesheet {
+   publishDir "${params.outdir}/samplesheet/", mode: params.publish_dir_mode
 
- Channel
- .from( ch_input )
- .splitCsv(header:false, sep:',')
- .map { it = ["${it[0]}", "${it[1]}", "${it[2]}"]}
- .into { ch_mosdepth }
+   input:
+   path samplesheet from ch_input
 
+   output:
+   path "samplesheet_bed.csv" into ch_samplesheet
+
+   script:
+   out = "samplesheet_bed.csv"
+
+   """
+   modify_samplesheet.py $samplesheet $out
+   """
+ }
+
+
+
+ def validate_input(LinkedHashMap sample) {
+     def sample_id = sample.sampleID
+     def bam = sample.bam
+     def protocol = sample.protocol
+     def bed = sample.bed
+
+     def array = []
+     array = [ sample_id, protocol, file(bam, checkIfExists: true), file(bed, checkIfExists: true) ]
+
+     return array
+ }
+
+ /*
+  * Create channels for input fastq files
+  */
+ ch_samplesheet
+     .splitCsv(header:true, sep:',')
+     .map { validate_input(it) }
+     .set { ch_bam_index }
+
+
+
+/*ch_samplesheet
+ .splitCsv(header:true, sep:',')
+ .map { it = ["${it[0]}", "${it[1]}", "${it[2]}", "${it[3]}"]}
+ .set { ch_bam_index }
+ */
+
+
+
+process samtools {
+  tag "$sample"
+  label 'process_low'
+
+  input:
+  set val(sample), val(experiment), path(bam), path(bed) from ch_bam_index
+
+  output:
+  set val(sample), path(bam), path("*.bam.bai"), val(experiment), path(bed) into ch_mosdepth
+
+  script:
+  """
+  samtools index $bam
+  """
+}
 
 
  /*
@@ -168,57 +225,77 @@ ${summary.collect { k,v -> "            <dt>$k</dt><dd><samp>${v ?: '<span style
 
  process mosdepth {
    tag "$sample"
-   label 'process_medium'
+   label 'process_low'
    publishDir "${params.outdir}/mosdepth/", mode: params.publish_dir_mode
 
 
    input:
-   tuple val(sample), path(bam), val(panel) from ch_mosdepth
+   tuple val(sample), path(bam), path(bai), val(experiment), path(bed) from ch_mosdepth
 
    output:
-   tuple val(sample), path("*.thresholds.bed.gz") into ch_ontarget_coverage
+   tuple val(sample), path("*.thresholds.bed") into ch_ontarget_coverage
    path "*.{txt,gz,csi}"
 
    script:
-   if (experiment == "TWIST") {
-     bed = file("/home/mpozuelor/exomes/bed_files/Twist_Exome_RefSeq_targets_hg19.bed", checkIfExists: true)
-     } else if (experiment == "IDT") {
-       bed = file("/home/mpozuelor/exomes/bed_files/xgen-exome-research-panel-v2-targets-hg19.bed", checkIfExists: true)
-       } else if (experiment == "Agilent") {
-         bed = file("/home/mpozuelor/exomes/bed_files/S07604514_Regions_hg19.bed", checkIfExists: true)
-       }
 
-       prefix = "${sample}"
+   prefix = "${sample}"
+   threshold = params.threshold
 
-       """
-       mosdepth \\
-       --by $bed \\
-       --fast-mode \\
-       --thresholds 0,1,10,50,100,500 \\
-       -Q 20 \\
-       -t $task.cpus \\
-       ${prefix} \\
-       $bam
-       """
-     }
+   """
+   mosdepth \\
+   --by $bed \\
+   --fast-mode \\
+   --thresholds 0,1,5,10,25,50,100,200,300,400,500 \\
+   -Q 20 \\
+   -t $task.cpus \\
+   ${prefix} \\
+   $bam
+
+   pigz -dk ${prefix}.thresholds.bed.gz
+   """
+ }
+
 
 
 process ontarget_coverage {
   tag "$sample"
   label 'process_low'
-  publishDir "${params.outdir}/table/", mode: params.publish_dir_mode
+  publishDir "${params.outdir}/tables/", mode: params.publish_dir_mode
 
   input:
   tuple val(sample), path(bed) from ch_ontarget_coverage
 
   output:
-  path "*summary.tsv"
+  path("*summary.tsv") into ch_collect_tables
 
   script:
   out = "${sample}_summary.tsv"
 
   """
-  python mosdepth_table.py $bed $out
+  mosdepth_table.py $bed $out -s $sample
+  """
+}
+
+
+process cat_summary {
+  label 'process_low'
+  publishDir "${params.outdir}/combined_table/", mode: params.publish_dir_mode
+
+  input:
+  path("tables/*") from ch_collect_tables.collect().ifEmpty([])
+
+  output:
+  path("*.tsv")
+
+//  printf "%s\s%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" "0" "1" "5" "10" "20" "40" "80" "100" "200" "300" "400" "500" "600" > coverages.tsv
+//"0,1,5,10,25,50,100,200,300,400,500"
+  script:
+  """
+  printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" "" "1X" "5X" "10X" "25X" "50X" "100X" "200X" "300X" "400X" "500X" > coverages.tsv
+
+  for f in \$(find tables -name "*.tsv"); do \\
+  cat \$f >> coverages.tsv;
+  done
   """
 }
 
