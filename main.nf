@@ -300,6 +300,8 @@ process cat_summary {
   """
 }
 
+
+
 process plot_distances {
   label 'process_low'
   publishDir "${params.outdir}/plots/", mode: params.publish_dir_mode
