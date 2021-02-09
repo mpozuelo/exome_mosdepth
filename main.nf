@@ -233,7 +233,8 @@ process samtools {
    tuple val(sample), path(bam), path(bai), val(experiment), path(bed) from ch_mosdepth
 
    output:
-   tuple val(sample), path("*.thresholds.bed") into ch_ontarget_coverage
+   path("*.thresholds.bed") into ch_ontarget_coverage
+   path "*.mosdepth.global.dist.txt" into ch_plot_distances
    path "*.{txt,gz,csi}"
 
    script:
@@ -296,6 +297,22 @@ process cat_summary {
   for f in \$(find tables -name "*.tsv"); do \\
   cat \$f >> coverages.tsv;
   done
+  """
+}
+
+process plot_distances {
+  label 'process_low'
+  publishDir "${params.outdir}/plots/", mode: params.publish_dir_mode
+
+  input:
+  path ("*") from ch_plot_distances.collect().ifEmpty([])
+
+  output:
+  path "dist.html"
+
+  script:
+  """
+  plot-dist.py \*global.dist.txt
   """
 }
 
