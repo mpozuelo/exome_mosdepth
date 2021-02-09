@@ -233,7 +233,7 @@ process samtools {
    tuple val(sample), path(bam), path(bai), val(experiment), path(bed) from ch_mosdepth
 
    output:
-   path("*.thresholds.bed") into ch_ontarget_coverage
+   tuple val(sample), path("*.thresholds.bed") into ch_ontarget_coverage
    path "*.mosdepth.global.dist.txt" into ch_plot_distances
    path "*.{txt,gz,csi}"
 
