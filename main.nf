@@ -71,7 +71,8 @@ project = params.project
 
 
 // Stage multiqc config files
-//ch_multiqc_config        = file("$projectDir/assets/multiqc_config.yaml", checkIfExists: true)
+ch_multiqc_config        = file("$projectDir/assets/multiqc_config.yaml", checkIfExists: true)
+ch_image_docs            = file("$baseDir/assets/figures/Logo_IdisNA_CIMA.png", checkIfExists: true)
 
 
 
@@ -154,7 +155,7 @@ ${summary.collect { k,v -> "            <dt>$k</dt><dd><samp>${v ?: '<span style
 
 
  process modify_samplesheet {
-   publishDir "${params.outdir}/samplesheet/", mode: params.publish_dir_mode
+   publishDir "${cluster_path}/05_QC/${project}/samplesheet/", mode: params.publish_dir_mode
 
    input:
    path samplesheet from ch_input
@@ -226,7 +227,7 @@ process samtools {
  process mosdepth {
    tag "$sample"
    label 'process_low'
-   publishDir "${params.outdir}/mosdepth/", mode: params.publish_dir_mode
+   publishDir "${cluster_path}/05_QC/${project}/mosdepth/", mode: params.publish_dir_mode
 
 
    input:
@@ -234,7 +235,7 @@ process samtools {
 
    output:
    tuple val(sample), path("*.thresholds.bed") into ch_ontarget_coverage
-   path "*.mosdepth.global.dist.txt" into ch_plot_distances
+   path "*.mosdepth.global.dist.txt" into ch_plot_distances, ch_mosdepth_mqc
    path "*.{txt,gz,csi}"
 
    script:
@@ -261,7 +262,7 @@ process samtools {
 process ontarget_coverage {
   tag "$sample"
   label 'process_low'
-  publishDir "${params.outdir}/tables/", mode: params.publish_dir_mode
+  publishDir "${cluster_path}/05_QC/${project}/coverageTables/", mode: params.publish_dir_mode
 
   input:
   tuple val(sample), path(bed) from ch_ontarget_coverage
@@ -280,7 +281,7 @@ process ontarget_coverage {
 
 process cat_summary {
   label 'process_low'
-  publishDir "${params.outdir}/combined_table/", mode: params.publish_dir_mode
+  publishDir "${cluster_path}/05_QC/${project}/coverageMergedTables/", mode: params.publish_dir_mode
 
   input:
   path("tables/*") from ch_collect_tables.collect().ifEmpty([])
@@ -301,23 +302,33 @@ process cat_summary {
 }
 
 
-/*
-process plot_distances {
-  label 'process_low'
-  publishDir "${params.outdir}/plots/", mode: params.publish_dir_mode
+// MultiQC
 
-  input:
-  path ("*") from ch_plot_distances.collect().ifEmpty([])
+process multiqc {
+    label 'process_low'
+    publishDir "${cluster_path}/05_QC/${project}/multiqc", mode: params.publish_dir_mode,
 
-  output:
-  path "dist.html"
+    when:
+    !params.skip_multiqc
 
-  script:
-  """
-  plot-dist.py \*global.dist.txt
-  """
+    input:
+    path (multiqc_config) from ch_multiqc_config
+    path workflow_summary from create_workflow_summary(summary)
+    path ('mosdepth/*') from ch_mosdepth_mqc.collect().ifEmpty([])
+    path "*" from ch_image_docs
+
+    output:
+    path "*multiqc_report.html" into ch_multiqc_report
+    path "*_data"
+    path "*.tsv"
+
+    script:
+    title = custom_runName ? "--title \"$project\"" : ''
+    rfilename = custom_runName ? "--filename " + custom_runName.replaceAll('\\W','_').replaceAll('_+','_') + "_multiqc_report" : "$project"
+    """
+    multiqc . -f $rtitle $rfilename --config $multiqc_config
+    """
 }
-*/
 
 
 /*
