@@ -286,7 +286,7 @@ process picard_hsmetrics {
   """
 }
 
-
+/*
 process merge_metrics {
 label 'process_low'
 publishDir "${cluster_path}/05_QC/${project}/mergedHSmetrics/", mode: params.publish_dir_mode
@@ -303,6 +303,7 @@ metrics=(\$(echo \$(echo -e `awk 'FNR>1 \|\| NR==1' metrics/*.txt`)))
 echo \$metrics > hybrid_selection_metrics.txt
 """
 }
+*/
 
 
 process ontarget_coverage {
