@@ -297,10 +297,10 @@ path("metrics/*") from ch_merge_metrics.collect().ifEmpty[()]
 output:
 path("hybrid_selection_metrics.txt")
 
-script:
-"""
+shell:
+'''
 awk 'FNR>1 || NR==1' metrics/*.txt > hybrid_selection_metrics.txt
-"""
+'''
 }
 
 
