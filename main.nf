@@ -56,20 +56,19 @@ if (params.help) {
  }
 
 
-// Validate inputs
-
-if (params.input) { ch_input = file(params.input, checkIfExists: true) } else { exit 1, "Input samplesheet file not specified!" }
-ch_genome = file("${cluster}/References/Homo_sapiens/UCSC/hg19/Sequence/WholeGenomeFasta/genome.fa", checkIfExists: true)
-
 if (!params.outdir) {
   params.outdir = params.run
 }
 
 // Mandatory arguments for the publishDir option (cluster_path has a default but project is mandatory as input)
-
 cluster_path = params.cluster_path
 project = params.project
 
+
+// Validate inputs
+
+if (params.input) { ch_input = file(params.input, checkIfExists: true) } else { exit 1, "Input samplesheet file not specified!" }
+ch_genome = file("${cluster_path}/References/Homo_sapiens/UCSC/hg19/Sequence/WholeGenomeFasta/genome.fa", checkIfExists: true)
 
 // Stage multiqc config files
 ch_multiqc_config        = file("$projectDir/assets/multiqc_config.yaml", checkIfExists: true)
