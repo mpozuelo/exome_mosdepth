@@ -299,8 +299,7 @@ path("hybrid_selection_metrics.txt")
 
 script:
 """
-metrics=(\$(echo -e `awk 'FNR>1 || NR==1' metrics/*.txt`))
-echo \$metrics > hybrid_selection_metrics.txt
+awk 'FNR>1 || NR==1' metrics\/*.txt > hybrid_selection_metrics.txt
 """
 }
 
