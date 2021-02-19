@@ -264,7 +264,7 @@ process samtools {
 process picard_hsmetrics {
   tag "$sample"
   label 'process_low'
-  publishDir "${cluster_path}/05_QC/${project}/HSmetrics/", mode: params.publish_dir_mode
+  publishDir "${cluster_path}/05_QC/${project}/HSmetrics/${sample}", mode: params.publish_dir_mode
 
   input:
   tuple val(sample), path(bam), path(bai), path(interval) from ch_picard_hsmetrics
@@ -299,7 +299,8 @@ path("hybrid_selection_metrics.txt")
 
 script:
 """
-awk 'FNR>1 || NR==1' metrics\/*.txt > hybrid_selection_metrics.txt
+metrics=(\$(echo \$(echo -e `awk 'FNR>1 || NR==1' metrics/*.txt`)))
+echo \$metrics > hybrid_selection_metrics.txt
 """
 }
 
