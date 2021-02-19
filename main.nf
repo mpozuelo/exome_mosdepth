@@ -155,7 +155,7 @@ ${summary.collect { k,v -> "            <dt>$k</dt><dd><samp>${v ?: '<span style
 
 
  process modify_samplesheet {
-   publishDir "${cluster_path}/05_QC/${project}/samplesheet/", mode: params.publish_dir_mode
+   publishDir "${cluster_path}/data/05_QC/${project}/samplesheet/", mode: params.publish_dir_mode
 
    input:
    path samplesheet from ch_input
@@ -228,7 +228,7 @@ process samtools {
  process mosdepth {
    tag "$sample"
    label 'process_low'
-   publishDir "${cluster_path}/05_QC/${project}/mosdepth/", mode: params.publish_dir_mode
+   publishDir "${cluster_path}/data/05_QC/${project}/mosdepth/", mode: params.publish_dir_mode
 
 
    input:
@@ -263,7 +263,7 @@ process samtools {
 process picard_hsmetrics {
   tag "$sample"
   label 'process_low'
-  publishDir "${cluster_path}/05_QC/${project}/HSmetrics/${sample}", mode: params.publish_dir_mode
+  publishDir "${cluster_path}/data/05_QC/${project}/HSmetrics/${sample}", mode: params.publish_dir_mode
 
   input:
   tuple val(sample), path(bam), path(bai), path(interval) from ch_picard_hsmetrics
@@ -288,7 +288,7 @@ process picard_hsmetrics {
 /*
 process merge_metrics {
 label 'process_low'
-publishDir "${cluster_path}/05_QC/${project}/mergedHSmetrics/", mode: params.publish_dir_mode
+publishDir "${cluster_path}/data/05_QC/${project}/mergedHSmetrics/", mode: params.publish_dir_mode
 
 input:
 path("metrics/*") from ch_merge_metrics.collect().ifEmpty[()]
@@ -308,7 +308,7 @@ echo \$metrics > hybrid_selection_metrics.txt
 process ontarget_coverage {
   tag "$sample"
   label 'process_low'
-  publishDir "${cluster_path}/05_QC/${project}/coverageTables/", mode: params.publish_dir_mode
+  publishDir "${cluster_path}/data/05_QC/${project}/coverageTables/", mode: params.publish_dir_mode
 
   input:
   tuple val(sample), path(bed) from ch_ontarget_coverage
@@ -327,7 +327,7 @@ process ontarget_coverage {
 
 process cat_summary {
   label 'process_low'
-  publishDir "${cluster_path}/05_QC/${project}/coverageMergedTables/", mode: params.publish_dir_mode
+  publishDir "${cluster_path}/data/05_QC/${project}/coverageMergedTables/", mode: params.publish_dir_mode
 
   input:
   path("tables/*") from ch_collect_tables.collect().ifEmpty([])
@@ -352,7 +352,7 @@ process cat_summary {
 
 process multiqc {
     label 'process_low'
-    publishDir "${cluster_path}/05_QC/${project}/multiqc", mode: params.publish_dir_mode,
+    publishDir "${cluster_path}/data/05_QC/${project}/multiqc", mode: params.publish_dir_mode,
 
     when:
     !params.skip_multiqc
