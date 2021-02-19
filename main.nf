@@ -59,6 +59,7 @@ if (params.help) {
 // Validate inputs
 
 if (params.input) { ch_input = file(params.input, checkIfExists: true) } else { exit 1, "Input samplesheet file not specified!" }
+ch_genome = file("${cluster}/References/Homo_sapiens/UCSC/hg19/Sequence/WholeGenomeFasta/genome.fa", checkIfExists: true)
 
 if (!params.outdir) {
   params.outdir = params.run
@@ -178,9 +179,10 @@ ${summary.collect { k,v -> "            <dt>$k</dt><dd><samp>${v ?: '<span style
      def bam = sample.bam
      def protocol = sample.protocol
      def bed = sample.bed
+     def interval = sample.interval
 
      def array = []
-     array = [ sample_id, protocol, file(bam, checkIfExists: true), file(bed, checkIfExists: true) ]
+     array = [ sample_id, protocol, file(bam, checkIfExists: true), file(bed, checkIfExists: true), file(interval, checkIfExists: true) ]
 
      return array
  }
@@ -208,10 +210,10 @@ process samtools {
   label 'process_low'
 
   input:
-  set val(sample), val(experiment), path(bam), path(bed) from ch_bam_index
+  set val(sample), val(experiment), path(bam), path(bed), path(interval) from ch_bam_index
 
   output:
-  set val(sample), path(bam), path("*.bam.bai"), val(experiment), path(bed) into ch_mosdepth
+  set val(sample), path(bam), path("*.bam.bai"), val(experiment), path(bed), path(interval) into ch_mosdepth
 
   script:
   """
@@ -231,9 +233,10 @@ process samtools {
 
 
    input:
-   tuple val(sample), path(bam), path(bai), val(experiment), path(bed) from ch_mosdepth
+   tuple val(sample), path(bam), path(bai), val(experiment), path(bed), path(interval) from ch_mosdepth
 
    output:
+   tuple val(sample), path(bam), path(bai), path(interval) into ch_picard_hsmetrics
    tuple val(sample), path("*.thresholds.bed") into ch_ontarget_coverage
    path "*.mosdepth.global.dist.txt" into ch_plot_distances, ch_mosdepth_mqc
    path "*.{txt,gz,csi}"
@@ -257,6 +260,48 @@ process samtools {
    """
  }
 
+
+process picard_hsmetrics {
+  tag "$sample"
+  label 'process_low'
+  publishDir "${cluster_path}/05_QC/${project}/HSmetrics/", mode: params.publish_dir_mode
+
+  input:
+  tuple val(sample), path(bam), path(bai), path(interval) from ch_picard_hsmetrics
+  file(genome) from ch_genome
+
+  output:
+  path("*.hybrid_selection_metrics.txt") into ch_merge_metrics
+
+  script:
+  outfile = sample + ".hybrid_selection_metrics.txt"
+
+  """
+  picard -Xmx${task.memory.toGiga()-mem_adjust}G CollectHsMetrics \
+  INPUT=$bam \
+  OUTPUT=$outfile \
+  TARGET_INTERVALS=$interval \
+  BAIT_INTERVALS=$interval \
+  REFERENCE_SEQUENCE=$genome
+  """
+}
+
+
+process merge_metrics {
+label 'process_low'
+publishDir "${cluster_path}/05_QC/${project}/mergedHSmetrics/", mode: params.publish_dir_mode
+
+input:
+path("metrics/*") from ch_merge_metrics.collect().ifEmpty[()]
+
+output:
+path("hybrid_selection_metrics.txt")
+
+script:
+'''
+awk 'FNR>1 || NR==1' metrics/*.txt > hybrid_selection_metrics.txt
+'''
+}
 
 
 process ontarget_coverage {

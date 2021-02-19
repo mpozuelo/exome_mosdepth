@@ -20,22 +20,24 @@ def add_bed_file(FileIn,FileOut):
     fi = open(FileIn, 'r')
 
     # Load mosdepth thresholds.bed.gz into a pandas dataframe
-    cov = pd.read_csv(fi, delimiter=',', index_col=False, low_memory=False)
+    ss = pd.read_csv(fi, delimiter=',', index_col=False, low_memory=False)
 
     # Open output file
     fo = open(FileOut, 'w')
 
-    basefolder = '/home/mpozuelor/Exomes/bed_files/'
+    bedfolder = '/datos/ngs/dato-activo/References/Exomes/bed_files/'
+    intervalfolder = '/datos/ngs/dato-activo/References/Exomes/interval_list'
     # Dictionary for bed files
-    bed = {'TWIST': basefolder + 'Twist_Exome_RefSeq_targets_hg19.bed', 'IDT': basefolder + 'xgen-exome-research-panel-v2-targets-hg19.bed', 'Agilent': basefolder + 'S07604514_Regions_agilent_hg19.bed'}
-
+    bed = {'TWIST': bedfolder + 'Twist_Exome_RefSeq_targets_hg19.bed', 'IDT': bedfolder + 'xgen-exome-research-panel-v2-targets-hg19.bed', 'Agilent': bedfolder + 'S07604514_Regions_agilent_hg19.bed'}
+    interval = {'TWIST': bedfolder + 'TWIST_hg19.interval_list', 'IDT': bedfolder + 'IDT_hg19.interval_list', 'Agilent': bedfolder + 'SureSelect_v6_hg19.interval_list'}
     # Write header
     #fo.write("%s\n" %('\t'.join(l_th[1:])))
 
     # Compute percentages
-    cov['bed'] = cov['protocol'].map(bed)
+    ss['bed'] = ss['protocol'].map(bed)
+    ss['interval'] = ss['protocol'].map(interval)
 
-    cov.to_csv(fo, index = False)
+    ss.to_csv(fo, index = False)
     fi.close()
 
 
