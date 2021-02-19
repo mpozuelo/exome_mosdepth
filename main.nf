@@ -298,9 +298,9 @@ output:
 path("hybrid_selection_metrics.txt")
 
 script:
-'''
+"""
 awk 'FNR>1 || NR==1' metrics/*.txt > hybrid_selection_metrics.txt
-'''
+"""
 }
 
 
