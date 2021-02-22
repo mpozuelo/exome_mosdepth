@@ -276,7 +276,7 @@ process picard_hsmetrics {
   outfile = sample + ".hybrid_selection_metrics.txt"
 
   """
-  picard -Xmx${task.memory.toGiga()-mem_adjust}G CollectHsMetrics \
+  picard -Xmx${task.memory.toGiga()}G CollectHsMetrics \
   INPUT=$bam \
   OUTPUT=$outfile \
   TARGET_INTERVALS=$interval \
