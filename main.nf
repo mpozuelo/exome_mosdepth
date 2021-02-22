@@ -277,7 +277,7 @@ process picard_hsmetrics {
   java_options = (task.memory.toGiga() > 8) ? params.markdup_java_options : "\"-Xms" +  (task.memory.toGiga() / 2 )+"g "+ "-Xmx" + (task.memory.toGiga() - 1)+ "g\""
 
   """
-  picard ${java_options} CollectHsMetrics \
+  picard -Xms3g CollectHsMetrics \
   INPUT=$bam \
   OUTPUT=$outfile \
   TARGET_INTERVALS=$interval \
