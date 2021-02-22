@@ -281,7 +281,8 @@ process picard_hsmetrics {
   OUTPUT=$outfile \
   TARGET_INTERVALS=$interval \
   BAIT_INTERVALS=$interval \
-  REFERENCE_SEQUENCE=$genome
+  REFERENCE_SEQUENCE=$genome \
+  TMP_DIR=tmp
   """
 }
 
