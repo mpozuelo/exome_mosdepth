@@ -274,9 +274,10 @@ process picard_hsmetrics {
 
   script:
   outfile = sample + ".hybrid_selection_metrics.txt"
+  java_options = (task.memory.toGiga() > 8) ? params.markdup_java_options : "\"-Xms" +  (task.memory.toGiga() / 2 )+"g "+ "-Xmx" + (task.memory.toGiga() - 1)+ "g\""
 
   """
-  picard -Xmx${task.memory.toGiga()}G CollectHsMetrics \
+  picard ${java_options} CollectHsMetrics \
   INPUT=$bam \
   OUTPUT=$outfile \
   TARGET_INTERVALS=$interval \
