@@ -373,7 +373,7 @@ process multiqc {
     path "*.tsv"
 
     script:
-    title = custom_runName ? "--title \"$project\"" : ''
+    rtitle = custom_runName ? "--title \"$project\"" : ''
     rfilename = custom_runName ? "--filename " + custom_runName.replaceAll('\\W','_').replaceAll('_+','_') + "_multiqc_report" : "$project"
     """
     multiqc . -f $rtitle $rfilename --config $multiqc_config
