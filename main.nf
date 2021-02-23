@@ -68,7 +68,8 @@ project = params.project
 // Validate inputs
 
 if (params.input) { ch_input = file(params.input, checkIfExists: true) } else { exit 1, "Input samplesheet file not specified!" }
-ch_genome = [file("${cluster_path}/References/USCS/hg19/genome.fa", checkIfExists: true), file("${cluster_path}/References/USCS/hg19/genome.fa.fai", checkIfExists: true)]
+ch_genome = file("${cluster_path}/References/USCS/hg19/genome.fa", checkIfExists: true)
+ch_genome_index = file("${cluster_path}/References/USCS/hg19/genome.fa.fai", checkIfExists: true)
 
 // Stage multiqc config files
 ch_multiqc_config        = file("$projectDir/assets/multiqc_config.yaml", checkIfExists: true)
@@ -268,6 +269,7 @@ process picard_hsmetrics {
   input:
   tuple val(sample), path(bam), path(bai), path(interval) from ch_picard_hsmetrics
   file(genome) from ch_genome
+  file(index) from ch_genome_index
 
   output:
   path("*.hybrid_selection_metrics.txt") into ch_merge_metrics
@@ -282,7 +284,7 @@ process picard_hsmetrics {
   OUTPUT=$outfile \
   TARGET_INTERVALS=$interval \
   BAIT_INTERVALS=$interval \
-  REFERENCE_SEQUENCE=${genome[0]} \
+  REFERENCE_SEQUENCE=$genome \
   TMP_DIR=tmp
   """
 }
