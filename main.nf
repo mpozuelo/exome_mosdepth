@@ -353,7 +353,7 @@ process cat_summary {
 
 
 // MultiQC
-
+/*
 process multiqc {
     label 'process_low'
     publishDir "${cluster_path}/data/05_QC/${project}/multiqc", mode: params.publish_dir_mode,
