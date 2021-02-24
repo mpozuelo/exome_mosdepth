@@ -19,7 +19,7 @@ def parse_args(args=None):
 def add_percentage(FileIn,FileOut,COUNTS):
     #Open input file
     fi = open(FileIn, 'r')
-    cnt = open(counts, 'r')
+    cnt = open(COUNTS, 'r')
 
     # Load mosdepth thresholds.bed.gz into a pandas dataframe
     ss = pd.read_csv(fi, delimiter=',', index_col=False, low_memory=False)
