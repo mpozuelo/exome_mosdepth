@@ -162,7 +162,7 @@ ${summary.collect { k,v -> "            <dt>$k</dt><dd><samp>${v ?: '<span style
    path samplesheet from ch_input
 
    output:
-   path "samplesheet_bed.csv" into ch_samplesheet
+   path "samplesheet_bed.csv" into ch_samplesheet, ch_samplesheet_percentage
 
    script:
    out = "samplesheet_bed.csv"
@@ -173,6 +173,63 @@ ${summary.collect { k,v -> "            <dt>$k</dt><dd><samp>${v ?: '<span style
  }
 
 
+def count_bam(LinkedHashMap sample) {
+  def sample_id = sample.sampleID
+  def bam = sample.bam
+
+  def array = []
+  array = [ sample_id, bam ]
+}
+
+ch_samplesheet
+  .splitCsv { count_bam(it) }
+  .set { ch_bam_count }
+
+
+
+process count_total {
+  publishDir "${cluster_path}/data/05_QC/${project}/numberReadsBAM/", mode: params.publish_dir_mode
+
+  input:
+  set val(sample), file(bam) from ch_bam_count
+
+  output:
+  path ("*.tsv") into ch_total_reads
+
+  script:
+  """
+  totalReads=\$(echo \$(samtools view -c $bam))
+  printf "%s\t%s\n" "$sample" "\$totalReads" > "${sample}_total_reads.txt"
+  """
+}
+
+
+process percentages {
+  publishDir "${cluster_path}/data/05_QC/${project}/", mode: params.publish_dir_mode,
+  saveAs: { filename ->
+      filename.endsWith(".tsv") ? "numberReadsBAM/$filename" : "samplesheet/$filename"
+    }
+
+  input:
+  path samplesheet from ch_samplesheet_percentage
+  path ("totalReads/*") from ch_total_reads.collect().ifEmpty([])
+
+  output:
+  path "samplesheet_percentage.csv" into ch_samplesheet_count
+  path "total_counts.tsv"
+
+  script:
+  out = "samplesheet_percentage.csv"
+
+  """
+  printf "sampleID\tcounts\n" > total_counts.tsv
+  cat "totalReads/*.tsv" >> total_counts.tsv
+  percentage_samplesheet.py $samplesheet $out -c total_counts.tsv
+  """
+}
+
+
+
 
  def validate_input(LinkedHashMap sample) {
      def sample_id = sample.sampleID
@@ -180,9 +237,10 @@ ${summary.collect { k,v -> "            <dt>$k</dt><dd><samp>${v ?: '<span style
      def protocol = sample.protocol
      def bed = sample.bed
      def interval = sample.interval
+     def percentage = sample.percentage
 
      def array = []
-     array = [ sample_id, protocol, file(bam, checkIfExists: true), file(bed, checkIfExists: true), file(interval, checkIfExists: true) ]
+     array = [ sample_id, protocol, file(bam, checkIfExists: true), file(bed, checkIfExists: true), file(interval, checkIfExists: true), percentage ]
 
      return array
  }
@@ -190,10 +248,10 @@ ${summary.collect { k,v -> "            <dt>$k</dt><dd><samp>${v ?: '<span style
  /*
   * Create channels for input fastq files
   */
- ch_samplesheet
+ ch_samplesheet_count
      .splitCsv(header:true, sep:',')
      .map { validate_input(it) }
-     .set { ch_bam_index }
+     .set { ch_samtools }
 
 
 
@@ -210,14 +268,18 @@ process samtools {
   label 'process_low'
 
   input:
-  set val(sample), val(experiment), path(bam), path(bed), path(interval) from ch_bam_index
+  set val(sample), val(experiment), path(bam), path(bed), path(interval), val(percentage) from ch_bam_index
 
   output:
-  set val(sample), path(bam), path("*.bam.bai"), val(experiment), path(bed), path(interval) into ch_mosdepth
+  set val(sample), path(bam), path("${bam.baseName}.bam.bai"), path("${bam.baseName}_${percentage}.bam"), path("${bam.baseName}_${percentage}.bam.bai") val(experiment), path(bed), path(interval) into ch_mosdepth
+  tuple val(sample), path(bam), path(bai), path("${bam.baseName}_${percentage}.bam"), path("${bam.baseName}_${percentage}.bam.bai"), path(interval) into ch_picard_hsmetrics
 
   script:
+  subset = "${bam.baseName}_${percentage}.bam"
   """
+  samtools view -s $percentage -b $bam > $subset
   samtools index $bam
+  samtools index $subset
   """
 }
 
@@ -229,21 +291,21 @@ process samtools {
  process mosdepth {
    tag "$sample"
    label 'process_low'
-   publishDir "${cluster_path}/data/05_QC/${project}/mosdepth/", mode: params.publish_dir_mode
+   publishDir "${cluster_path}/data/05_QC/${project}/mosdepth/${sample}", mode: params.publish_dir_mode
 
 
    input:
-   tuple val(sample), path(bam), path(bai), val(experiment), path(bed), path(interval) from ch_mosdepth
+   tuple val(sample), path(bam), path(bai), path(bam_subset), path(bai_subset), val(experiment), path(bed), path(interval) from ch_mosdepth
 
    output:
-   tuple val(sample), path(bam), path(bai), path(interval) into ch_picard_hsmetrics
-   tuple val(sample), path("*.thresholds.bed") into ch_ontarget_coverage
-   path "*.mosdepth.global.dist.txt" into ch_plot_distances, ch_mosdepth_mqc
+   tuple val(sample), path("${prefix}.thresholds.bed"), path("${prefix_subset}.thresholds.bed") into ch_ontarget_coverage
+   //path "*.mosdepth.global.dist.txt" into ch_mosdepth_mqc
    path "*.{txt,gz,csi}"
 
    script:
 
-   prefix = "${sample}"
+   prefix = "${bam.baseName}"
+   prefix_subset = "${bam_subset.baseName}"
    threshold = params.threshold
 
    """
@@ -257,6 +319,17 @@ process samtools {
    $bam
 
    pigz -dk ${prefix}.thresholds.bed.gz
+
+   mosdepth \\
+   --by $bed \\
+   --fast-mode \\
+   --thresholds 0,1,5,10,25,50,100,200,300,400,500 \\
+   -Q 20 \\
+   -t $task.cpus \\
+   ${prefix_subset} \\
+   $bam_subset
+
+   pigz -dk ${prefix_subset}.thresholds.bed.gz
    """
  }
 
@@ -267,21 +340,30 @@ process picard_hsmetrics {
   publishDir "${cluster_path}/data/05_QC/${project}/HSmetrics/${sample}", mode: params.publish_dir_mode
 
   input:
-  tuple val(sample), path(bam), path(bai), path(interval) from ch_picard_hsmetrics
+  tuple val(sample), path(bam), path(bai), path(bam_subset), path(bai_subset), path(interval) from ch_picard_hsmetrics
   file(genome) from ch_genome
   file(index) from ch_genome_index
 
   output:
-  path("*.hybrid_selection_metrics.txt") into ch_merge_metrics
+  tuple path("${bam.baseName}.hybrid_selection_metrics.txt"), path("${bam_subset.baseName}.hybrid_selection_metrics.txt") into ch_merge_metrics
 
   script:
-  outfile = sample + ".hybrid_selection_metrics.txt"
+  outfile = "${bam.baseName}.hybrid_selection_metrics.txt"
+  outfile_subset = "${bam_subset.baseName}.hybrid_selection_metrics.txt"
   java_options = (task.memory.toGiga() > 8) ? params.markdup_java_options : "\"-Xms" +  (task.memory.toGiga() / 2 )+"g "+ "-Xmx" + (task.memory.toGiga() - 1)+ "g\""
 
   """
   picard ${java_options} CollectHsMetrics \
   INPUT=$bam \
   OUTPUT=$outfile \
+  TARGET_INTERVALS=$interval \
+  BAIT_INTERVALS=$interval \
+  REFERENCE_SEQUENCE=$genome \
+  TMP_DIR=tmp
+
+  picard ${java_options} CollectHsMetrics \
+  INPUT=$bam_subset \
+  OUTPUT=$outfile_subset \
   TARGET_INTERVALS=$interval \
   BAIT_INTERVALS=$interval \
   REFERENCE_SEQUENCE=$genome \
@@ -315,16 +397,19 @@ process ontarget_coverage {
   publishDir "${cluster_path}/data/05_QC/${project}/coverageTables/", mode: params.publish_dir_mode
 
   input:
-  tuple val(sample), path(bed) from ch_ontarget_coverage
+  tuple val(sample), path(bed), path(bed_subset) from ch_ontarget_coverage
 
   output:
-  path("*summary.tsv") into ch_collect_tables
+  tuple path("${sample}_summary.tsv"), path("${sample}_subset_summary.tsv") into ch_collect_tables
 
   script:
   out = "${sample}_summary.tsv"
+  out_subset = "${sample}_subset_summary.tsv"
+  sample_subset = "${sample}_subset"
 
   """
   mosdepth_table.py $bed $out -s $sample
+  mosdepth_table.py $bed_subset $out_subset -s $sample_subset
   """
 }
 
@@ -334,7 +419,7 @@ process cat_summary {
   publishDir "${cluster_path}/data/05_QC/${project}/coverageMergedTables/", mode: params.publish_dir_mode
 
   input:
-  path("tables/*") from ch_collect_tables.collect().ifEmpty([])
+  tuple path("tables/*"), path("subset_tables/") from ch_collect_tables.collect().ifEmpty([])
 
   output:
   path("*.tsv")
@@ -347,6 +432,13 @@ process cat_summary {
 
   for f in \$(find tables -name "*.tsv"); do \\
   cat \$f >> coverages.tsv;
+  done
+
+
+  printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" "" "1X" "5X" "10X" "25X" "50X" "100X" "200X" "300X" "400X" "500X" > coverages_subset.tsv
+
+  for f in \$(find subset_tables -name "*.tsv"); do \\
+  cat \$f >> coverages_subset.tsv;
   done
   """
 }
