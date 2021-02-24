@@ -201,7 +201,7 @@ process count_total {
   script:
   """
   totalReads=\$(echo \$(samtools view -c $bam))
-  printf "%s\t%s\n" "$sample" "\$totalReads" > "${sample}_total_reads.txt"
+  printf "%s\t%s\n" "$sample" "\$totalReads" > "${sample}_total_reads.tsv"
   """
 }
 
