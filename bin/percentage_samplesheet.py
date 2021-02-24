@@ -44,7 +44,7 @@ def add_percentage(FileIn,FileOut,COUNTS):
 
 def main(args=None):
     args = parse_args(args)
-    add_bed_file(args.FILE_IN,args.FILE_OUT, args.COUNTS)
+    add_percentage(args.FILE_IN,args.FILE_OUT, args.COUNTS)
 
 
 if __name__ == '__main__':
