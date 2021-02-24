@@ -190,6 +190,8 @@ ch_samplesheet
 
 
 process count_total {
+  tag "$sample"
+  label 'process_low'
   publishDir "${cluster_path}/data/05_QC/${project}/numberReadsBAM/", mode: params.publish_dir_mode
 
   input:
@@ -200,7 +202,7 @@ process count_total {
 
   script:
   """
-  totalReads=\$(echo \$(samtools view -c $bam))
+  totalReads=\$(echo \$(samtools view -c $bam -@ $task.cpus))
   printf "%s\t%s\n" "$sample" "\$totalReads" > "${sample}_total_reads.tsv"
   """
 }
