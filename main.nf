@@ -270,7 +270,7 @@ process samtools {
   label 'process_low'
 
   input:
-  set val(sample), val(experiment), path(bam), path(bed), path(interval), val(percentage) from ch_bam_index
+  set val(sample), val(experiment), path(bam), path(bed), path(interval), val(percentage) from ch_samtools
 
   output:
   set val(sample), path(bam), path("${bam.baseName}.bam.bai"), path("${bam.baseName}_${percentage}.bam"), path("${bam.baseName}_${percentage}.bam.bai") val(experiment), path(bed), path(interval) into ch_mosdepth
