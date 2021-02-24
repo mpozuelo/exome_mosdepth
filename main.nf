@@ -227,7 +227,7 @@ process percentages {
 
   """
   printf "sampleID\tcounts\n" > total_counts.tsv
-  cat "totalReads/*.tsv" >> total_counts.tsv
+  cat totalReads/*.tsv >> total_counts.tsv
   percentage_samplesheet.py $samplesheet $out -c total_counts.tsv
   """
 }
