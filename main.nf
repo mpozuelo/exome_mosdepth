@@ -181,8 +181,10 @@ def count_bam(LinkedHashMap sample) {
   array = [ sample_id, bam ]
 }
 
+
 ch_samplesheet
-  .splitCsv { count_bam(it) }
+  .splitCsv(header:true, sep:',')
+  .map{ count_bam(it) }
   .set { ch_bam_count }
 
 
