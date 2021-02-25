@@ -203,7 +203,7 @@ process count_total {
   script:
   """
   samtools view -c $bam > "${sample}.tsv"
-  printf "%s\t%s\n" "$sample" "\$(echo $(cat ${sample}.tsv))" > "${sample}_total_reads.tsv"
+  printf "%s\t%s\n" "$sample" "\$(echo \$(cat ${sample}.tsv))" > "${sample}_total_reads.tsv"
   """
 }
 
