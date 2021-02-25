@@ -29,7 +29,7 @@ def add_percentage(FileIn,FileOut,COUNTS):
     fo = open(FileOut, 'w')
 
     min = counts['counts'].min()
-    counts['percentage'] = round(counts['counts']/min, 2)
+    counts['percentage'] = round(min/counts['counts'], 2)
 
     # Dictionary for bed files
     # Write header

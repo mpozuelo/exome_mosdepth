@@ -281,8 +281,8 @@ process samtools {
   script:
   subset = "${bam.baseName}_${percentage}.bam"
   """
-  samtools view -s $percentage -b $bam > $subset
   samtools index $bam
+  samtools view -s $percentage -b $bam > $subset
   samtools index $subset
   """
 }
