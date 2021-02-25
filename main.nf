@@ -394,7 +394,6 @@ merge_HSMetrics.sh "subsetMetrics" "Subset.hybrid_selection_metrics.txt"
 }
 
 
-
 process ontarget_coverage {
   tag "$sample"
   label 'process_low'
