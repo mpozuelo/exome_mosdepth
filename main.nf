@@ -384,12 +384,12 @@ input:
 set path("originalMetrics/*"), path("subsetMetrics/*") from ch_merge_metrics.collect().ifEmpty[()]
 
 output:
-path("hybrid_selection_metrics.txt")
+path("*hybrid_selection_metrics.txt")
 
-script:
+shell:
 """
-merge_HSMetrics.sh originalMetrics Original.hybrid_selection_metrics.txt
-merge_HSMetrics.sh subsetMetrics Subset.hybrid_selection_metrics.txt
+merge_HSMetrics.sh "originalMetrics" "Original.hybrid_selection_metrics.txt"
+merge_HSMetrics.sh "subsetMetrics" "Subset.hybrid_selection_metrics.txt"
 """
 }
 
