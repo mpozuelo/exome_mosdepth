@@ -276,7 +276,7 @@ process samtools {
 
   output:
   set val(sample), path(bam), path("${bam.baseName}.bam.bai"), path("${bam.baseName}_${percentage}.bam"), path("${bam.baseName}_${percentage}.bam.bai"), val(experiment), path(bed), path(interval) into ch_mosdepth
-  tuple val(sample), path(bam), path(bai), path("${bam.baseName}_${percentage}.bam"), path("${bam.baseName}_${percentage}.bam.bai"), path(interval) into ch_picard_hsmetrics
+  tuple val(sample), path(bam), path("${bam.baseName}.bam.bai"), path("${bam.baseName}_${percentage}.bam"), path("${bam.baseName}_${percentage}.bam.bai"), path(interval) into ch_picard_hsmetrics
 
   script:
   subset = "${bam.baseName}_${percentage}.bam"
