@@ -178,7 +178,7 @@ def count_bam(LinkedHashMap sample) {
   def bam = sample.bam
 
   def array = []
-  array = [ sample_id, bam ]
+  array = [ sample_id, file(bam, checkIfExists: true) ]
 }
 
 
