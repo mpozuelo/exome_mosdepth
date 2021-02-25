@@ -276,7 +276,7 @@ process samtools {
 
   output:
   set val(sample), path(bam), path("${bam.baseName}.bam.bai"), path("${bam.baseName}_${percentage}.bam"), path("${bam.baseName}_${percentage}.bam.bai"), val(experiment), path(bed), path(interval) into ch_mosdepth
-  tuple val(sample), path(bam), path("${bam.baseName}.bam.bai"), path("${bam.baseName}_${percentage}.bam"), path("${bam.baseName}_${percentage}.bam.bai"), path(interval) into ch_picard_hsmetrics
+  set val(sample), path(bam), path("${bam.baseName}.bam.bai"), path("${bam.baseName}_${percentage}.bam"), path("${bam.baseName}_${percentage}.bam.bai"), path(interval) into ch_picard_hsmetrics
 
   script:
   subset = "${bam.baseName}_${percentage}.bam"
@@ -299,10 +299,10 @@ process samtools {
 
 
    input:
-   tuple val(sample), path(bam), path(bai), path(bam_subset), path(bai_subset), val(experiment), path(bed), path(interval) from ch_mosdepth
+   set val(sample), path(bam), path(bai), path(bam_subset), path(bai_subset), val(experiment), path(bed), path(interval) from ch_mosdepth
 
    output:
-   tuple val(sample), path("${prefix}.thresholds.bed"), path("${prefix_subset}.thresholds.bed") into ch_ontarget_coverage
+   set val(sample), path("${prefix}.thresholds.bed"), path("${prefix_subset}.thresholds.bed") into ch_ontarget_coverage
    //path "*.mosdepth.global.dist.txt" into ch_mosdepth_mqc
    path "*.{txt,gz,csi}"
 
@@ -344,12 +344,12 @@ process picard_hsmetrics {
   publishDir "${cluster_path}/data/05_QC/${project}/HSmetrics/${sample}", mode: params.publish_dir_mode
 
   input:
-  tuple val(sample), path(bam), path(bai), path(bam_subset), path(bai_subset), path(interval) from ch_picard_hsmetrics
+  set val(sample), path(bam), path(bai), path(bam_subset), path(bai_subset), path(interval) from ch_picard_hsmetrics
   file(genome) from ch_genome
   file(index) from ch_genome_index
 
   output:
-  tuple path("${bam.baseName}.hybrid_selection_metrics.txt"), path("${bam_subset.baseName}.hybrid_selection_metrics.txt") into ch_merge_metrics
+  set path("${bam.baseName}.hybrid_selection_metrics.txt"), path("${bam_subset.baseName}.hybrid_selection_metrics.txt") into ch_merge_metrics
 
   script:
   outfile = "${bam.baseName}.hybrid_selection_metrics.txt"
@@ -375,24 +375,24 @@ process picard_hsmetrics {
   """
 }
 
-/*
+
 process merge_metrics {
 label 'process_low'
 publishDir "${cluster_path}/data/05_QC/${project}/mergedHSmetrics/", mode: params.publish_dir_mode
 
 input:
-path("metrics/*") from ch_merge_metrics.collect().ifEmpty[()]
+set path("originalMetrics/*"), path("subsetMetrics/*") from ch_merge_metrics.collect().ifEmpty[()]
 
 output:
 path("hybrid_selection_metrics.txt")
 
 script:
 """
-metrics=(\$(echo \$(echo -e `awk 'FNR>1 \|\| NR==1' metrics/*.txt`)))
-echo \$metrics > hybrid_selection_metrics.txt
+merge_HSMetrics.sh originalMetrics Original.hybrid_selection_metrics.txt
+merge_HSMetrics.sh subsetMetrics Subset.hybrid_selection_metrics.txt
 """
 }
-*/
+
 
 
 process ontarget_coverage {
@@ -401,10 +401,10 @@ process ontarget_coverage {
   publishDir "${cluster_path}/data/05_QC/${project}/coverageTables/", mode: params.publish_dir_mode
 
   input:
-  tuple val(sample), path(bed), path(bed_subset) from ch_ontarget_coverage
+  set val(sample), path(bed), path(bed_subset) from ch_ontarget_coverage
 
   output:
-  tuple path("${sample}_summary.tsv"), path("${sample}_subset_summary.tsv") into ch_collect_tables
+  set path("${sample}_summary.tsv"), path("${sample}_subset_summary.tsv") into ch_collect_tables
 
   script:
   out = "${sample}_summary.tsv"
@@ -423,7 +423,7 @@ process cat_summary {
   publishDir "${cluster_path}/data/05_QC/${project}/coverageMergedTables/", mode: params.publish_dir_mode
 
   input:
-  tuple path("tables/*"), path("subset_tables/") from ch_collect_tables.collect().ifEmpty([])
+  set path("tables/*"), path("subset_tables/") from ch_collect_tables.collect().ifEmpty([])
 
   output:
   path("*.tsv")
