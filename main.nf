@@ -202,8 +202,8 @@ process count_total {
 
   script:
   """
-  totalReads=\$(echo \$(samtools view -c $bam -@ $task.cpus))
-  printf "%s\t%s\n" "$sample" "\$totalReads" > "${sample}_total_reads.tsv"
+  samtools view -c $bam > "${sample}.tsv"
+  printf "%s\t%s\n" "$sample" "\$(echo $(cat ${sample}.tsv))" > "${sample}_total_reads.tsv"
   """
 }
 
