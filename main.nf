@@ -381,12 +381,12 @@ process merge_metrics {
   publishDir "${cluster_path}/data/05_QC/${project}/mergedHSmetrics/", mode: params.publish_dir_mode
 
   input:
-  set path("originalMetrics/*"), path("subsetMetrics/*") from ch_merge_metrics.collect().ifEmpty([])
+  set path("originalMetrics/*"), path("subsetMetrics/*") from ch_merge_metrics.toList()
 
   output:
   path("*hybrid_selection_metrics.txt")
 
-  shell:
+  script:
   """
   merge_HSMetrics.sh "originalMetrics" "Original.hybrid_selection_metrics.txt"
   merge_HSMetrics.sh "subsetMetrics" "Subset.hybrid_selection_metrics.txt"
