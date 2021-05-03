@@ -68,8 +68,10 @@ project = params.project
 // Validate inputs
 
 if (params.input) { ch_input = file(params.input, checkIfExists: true) } else { exit 1, "Input samplesheet file not specified!" }
-ch_genome = file("${cluster_path}/References/USCS/hg19/genome.fa", checkIfExists: true)
-ch_genome_index = file("${cluster_path}/References/USCS/hg19/genome.fa.fai", checkIfExists: true)
+//ch_genome = file("${cluster_path}/References/USCS/hg19/genome.fa", checkIfExists: true)
+//ch_genome_index = file("${cluster_path}/References/USCS/hg19/genome.fa.fai", checkIfExists: true)
+ch_genome = file("${cluster_path}/References/iGenomes/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta", checkIfExists: true)
+ch_genome_index = file("${cluster_path}/References/iGenomes/references/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta.fai", checkIfExists: true)
 
 // Stage multiqc config files
 ch_multiqc_config        = file("$projectDir/assets/multiqc_config.yaml", checkIfExists: true)
@@ -270,6 +272,8 @@ process percentages {
 process samtools {
   tag "$sample"
   label 'process_low'
+  publishDir "${cluster_path}/data/05_QC/${project}/samtools/${sample}", mode: params.publish_dir_mode
+
 
   input:
   set val(sample), val(experiment), path(bam), path(bed), path(interval), val(percentage) from ch_samtools
@@ -349,7 +353,7 @@ process picard_hsmetrics {
   file(index) from ch_genome_index
 
   output:
-  set path("${bam.baseName}.hybrid_selection_metrics.txt"), path("${bam_subset.baseName}.hybrid_selection_metrics.txt") into ch_merge_metrics
+  tuple path("${bam.baseName}.hybrid_selection_metrics.txt"), path("${bam_subset.baseName}.hybrid_selection_metrics.txt") into ch_merge_metrics
 
   script:
   outfile = "${bam.baseName}.hybrid_selection_metrics.txt"
@@ -381,7 +385,7 @@ process merge_metrics {
   publishDir "${cluster_path}/data/05_QC/${project}/mergedHSmetrics/", mode: params.publish_dir_mode
 
   input:
-  set path("originalMetrics/*"), path("subsetMetrics/*") from ch_merge_metrics.toList()
+  tuple path("originalMetrics/*"), path("subsetMetrics/*") from ch_merge_metrics.collect()
 
   output:
   path("*hybrid_selection_metrics.txt")
