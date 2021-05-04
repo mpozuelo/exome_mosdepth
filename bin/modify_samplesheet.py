@@ -28,7 +28,7 @@ def add_bed_file(FileIn,FileOut):
     bedfolder = '/datos/ngs/dato-activo/References/Exomes/bed_files/'
     intervalfolder = '/datos/ngs/dato-activo/References/Exomes/interval_list/'
     # Dictionary for bed files
-    bed = {'TWIST': bedfolder + 'Twist_Exome_RefSeq_targets_hg19.bed', 'IDT': bedfolder + 'xgen-exome-research-panel-v2-targets-hg19.bed', 'Agilent': bedfolder + 'S07604514_Regions_agilent_hg19.bed'}
+    bed = {'TWIST': bedfolder + 'Twist_Exome_RefSeq_targets_hg38.bed', 'IDT': bedfolder + 'xgen-exome-research-panel-v2-targets-hg38.bed', 'Agilent': bedfolder + 'S07604514_Regions_agilent_hg38.bed'}
     interval = {'TWIST': intervalfolder + 'TWIST_hg38.interval_list', 'IDT': intervalfolder + 'IDT_hg38.interval_list', 'Agilent': intervalfolder + 'SureSelect_v6_hg38.interval_list'}
     # Write header
     #fo.write("%s\n" %('\t'.join(l_th[1:])))
