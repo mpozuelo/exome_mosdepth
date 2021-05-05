@@ -280,7 +280,8 @@ process samtools {
 
   output:
   set val(sample), path(bam), path("${bam.baseName}.bam.bai"), path("${bam.baseName}_${percentage}.bam"), path("${bam.baseName}_${percentage}.bam.bai"), val(experiment), path(bed), path(interval) into ch_mosdepth
-  set val(sample), path(bam), path("${bam.baseName}.bam.bai"), path("${bam.baseName}_${percentage}.bam"), path("${bam.baseName}_${percentage}.bam.bai"), path(interval) into ch_picard_hsmetrics
+  set val(sample), path(bam), path("${bam.baseName}.bam.bai"), path("${bam.baseName}_${percentage}.bam"), path("${bam.baseName}_${percentage}.bam.bai"), path(interval) into ch_picard_hsmetrics,
+                                                                                                                                                                             ch_picard_alignmentmetrics
 
   script:
   subset = "${bam.baseName}_${percentage}.bam"
@@ -353,7 +354,8 @@ process picard_hsmetrics {
   file(index) from ch_genome_index
 
   output:
-  tuple path("${bam.baseName}.hybrid_selection_metrics.txt"), path("${bam_subset.baseName}.hybrid_selection_metrics.txt") into ch_merge_metrics
+  path("${bam.baseName}.hybrid_selection_metrics.txt") into ch_merge_original_HSmetrics
+  path("${bam_subset.baseName}.hybrid_selection_metrics.txt") into ch_merge_subset_HSmetrics
 
   script:
   outfile = "${bam.baseName}.hybrid_selection_metrics.txt"
@@ -379,21 +381,58 @@ process picard_hsmetrics {
   """
 }
 
+process picard_alignmentmetrics {
+  tag "$sample"
+  label 'process_low'
+  publishDir "${cluster_path}/data/05_QC/${project}/HSmetrics/${sample}", mode: params.publish_dir_mode
+
+  input:
+  set val(sample), path(bam), path(bai), path(bam_subset), path(bai_subset), path(interval) from ch_picard_alignmentmetrics
+  file(genome) from ch_genome
+  file(index) from ch_genome_index
+
+  output:
+  path("${bam.baseName}.alignment_metrics.txt") into ch_merge_original_Alignmentmetrics
+  path("${bam_subset.baseName}.alignment_metrics.txt") into ch_merge_subset_Alignmentmetrics
+
+  script:
+  outfile = "${bam.baseName}.alignment_metrics.txt"
+  outfile_subset = "${bam_subset.baseName}.alignment_metrics.txt"
+  java_options = (task.memory.toGiga() > 8) ? params.markdup_java_options : "\"-Xms" +  (task.memory.toGiga() / 2 )+"g "+ "-Xmx" + (task.memory.toGiga() - 1)+ "g\""
+
+  """
+  picard ${java_options} CollectAlignmentSummaryMetrics \
+  INPUT=$bam \
+  OUTPUT=$outfile \
+  R=$genome
+
+  picard ${java_options} CollectAlignmentSummaryMetrics \
+  INPUT=$bam_subset \
+  OUTPUT=$outfile_subset \
+  R=$genome
+  """
+}
+
 
 process merge_metrics {
   label 'process_low'
-  publishDir "${cluster_path}/data/05_QC/${project}/mergedHSmetrics/", mode: params.publish_dir_mode
+  publishDir "${cluster_path}/data/05_QC/${project}/mergedmetrics/", mode: params.publish_dir_mode
 
   input:
-  tuple path("originalMetrics/*"), path("subsetMetrics/*") from ch_merge_metrics.collect()
+  path("originalHSMetrics/*") from ch_merge_original_HSmetrics.collect()
+  path("subsetHSMetrics/*") from ch_merge_subset_HSmetrics.collect()
+  path("originalAlignmentMetrics/*") from ch_merge_original_Alignmentmetrics.collect()
+  path("subsetAlignmentMetrics/*") from ch_merge_subset_Alignmentmetrics.collect()
 
   output:
-  path("*hybrid_selection_metrics.txt")
+  path("*_metrics.txt")
 
   script:
   """
-  merge_HSMetrics.sh "originalMetrics" "Original.hybrid_selection_metrics.txt"
-  merge_HSMetrics.sh "subsetMetrics" "Subset.hybrid_selection_metrics.txt"
+  merge_Metrics.sh "originalHSMetrics" "Original.hybrid_selection_metrics_tmp.txt"
+  merge_Metrics.sh "subsetHSMetrics" "Subset.hybrid_selection_metrics_tmp.txt"
+  merge_Metrics.sh "originalAlignmentMetrics" "Original.Alignment_metrics_tmp.txt"
+  merge_Metrics.sh "subsetAlignmentMetrics" "Subset.Alignment_metrics_tmp.txt"
   """
 }
 
