@@ -68,10 +68,10 @@ project = params.project
 // Validate inputs
 
 if (params.input) { ch_input = file(params.input, checkIfExists: true) } else { exit 1, "Input samplesheet file not specified!" }
-//ch_genome = file("${cluster_path}/References/USCS/hg19/genome.fa", checkIfExists: true)
-//ch_genome_index = file("${cluster_path}/References/USCS/hg19/genome.fa.fai", checkIfExists: true)
-ch_genome = file("${cluster_path}/References/iGenomes/Homo_sapiens/UCSC/hg38/Sequence/WholeGenomeFasta/genome.fa", checkIfExists: true)
-ch_genome_index = file("${cluster_path}/References/iGenomes/Homo_sapiens/UCSC/hg38/Sequence/WholeGenomeFasta/genome.fa.fai", checkIfExists: true)
+ch_genome = file("${cluster_path}/References/USCS/hg19/genome.fa", checkIfExists: true)
+ch_genome_index = file("${cluster_path}/References/USCS/hg19/genome.fa.fai", checkIfExists: true)
+//ch_genome = file("${cluster_path}/References/iGenomes/Homo_sapiens/UCSC/hg38/Sequence/WholeGenomeFasta/genome.fa", checkIfExists: true)
+//ch_genome_index = file("${cluster_path}/References/iGenomes/Homo_sapiens/UCSC/hg38/Sequence/WholeGenomeFasta/genome.fa.fai", checkIfExists: true)
 
 // Stage multiqc config files
 ch_multiqc_config        = file("$projectDir/assets/multiqc_config.yaml", checkIfExists: true)
