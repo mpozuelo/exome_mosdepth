@@ -360,7 +360,7 @@ process picard_hsmetrics {
   script:
   outfile = "${bam.baseName}.hybrid_selection_metrics.txt"
   outfile_subset = "${bam_subset.baseName}.hybrid_selection_metrics.txt"
-  java_options = (task.memory.toGiga() > 8) ? params.markdup_java_options : "\"-Xms" +  (task.memory.toGiga() / 2 )+"g "+ "-Xmx" + (task.memory.toGiga() - 1)+ "g\""
+  java_options = (task.memory.toGiga() > 42) ? params.markdup_java_options : "\"-Xms" +  (task.memory.toGiga() / 2 )+"g "+ "-Xmx" + (task.memory.toGiga() - 1)+ "g\""
 
   """
   picard ${java_options} CollectHsMetrics \
