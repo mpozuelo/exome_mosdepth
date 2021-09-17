@@ -345,7 +345,7 @@ process samtools {
 
 process picard_hsmetrics {
   tag "$sample"
-  label 'process_low'
+  label 'process_medium'
   publishDir "${cluster_path}/data/05_QC/${project}/HSmetrics/${sample}", mode: params.publish_dir_mode
 
   input:
