@@ -368,7 +368,6 @@ process picard_hsmetrics {
   OUTPUT=$outfile \
   TARGET_INTERVALS=$interval \
   BAIT_INTERVALS=$interval \
-  REFERENCE_SEQUENCE=$genome \
   TMP_DIR=tmp
 
   picard ${java_options} CollectHsMetrics \
@@ -376,7 +375,6 @@ process picard_hsmetrics {
   OUTPUT=$outfile_subset \
   TARGET_INTERVALS=$interval \
   BAIT_INTERVALS=$interval \
-  REFERENCE_SEQUENCE=$genome \
   TMP_DIR=tmp
   """
 }
